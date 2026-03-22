@@ -5,8 +5,8 @@ import { chat, generateDiary } from "../services/claudeService";
 
 const router = Router();
 
-const TIMEOUT_MS = 5000;
-const TIMEOUT_MESSAGE = "잠시만요... 생각 중이에요 🤔";
+const TIMEOUT_MS = 4500;
+const TIMEOUT_MESSAGE = "잠시 서버가 바빠요. 다시 말씀해 주세요 🙏";
 
 const EMOTION_WORDS = [
   "좋았", "힘들", "피곤", "행복", "슬펐", "화났", "설렜", "뿌듯",
@@ -26,8 +26,10 @@ function makeKakaoResponse(text: string): KakaoResponse {
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
-  const timeout = new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms));
-  return Promise.race([promise, timeout]);
+  const timeout = new Promise<T>((_, reject) =>
+    setTimeout(() => reject(new Error("timeout")), ms)
+  );
+  return Promise.race([promise, timeout]).catch(() => fallback);
 }
 
 function hasEmotionWord(text: string): boolean {
