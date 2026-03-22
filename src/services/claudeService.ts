@@ -1,0 +1,42 @@
+import Groq from "groq-sdk";
+import { Session } from "../types";
+import systemPrompt from "../prompts/systemPrompt";
+import { buildDiaryPrompt } from "../prompts/diaryPrompt";
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+const MODEL = "llama-3.3-70b-versatile";
+const ERROR_MESSAGE = "잠시 문제가 생겼어요. 다시 말씀해 주세요.";
+
+export async function chat(session: Session): Promise<string> {
+  try {
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...session.messages,
+      ],
+    });
+
+    return response.choices[0].message.content ?? ERROR_MESSAGE;
+  } catch (e) {
+    console.error("[chat error]", e);
+    return ERROR_MESSAGE;
+  }
+}
+
+export async function generateDiary(session: Session, date: string): Promise<string> {
+  try {
+    const prompt = buildDiaryPrompt(session.messages, date);
+
+    const response = await groq.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    return response.choices[0].message.content ?? ERROR_MESSAGE;
+  } catch (e) {
+    console.error("[generateDiary error]", e);
+    return ERROR_MESSAGE;
+  }
+}
