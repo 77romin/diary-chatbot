@@ -5,7 +5,7 @@ import { buildDiaryPrompt } from "../prompts/diaryPrompt";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-const MODEL = "llama-3.3-70b-versatile";
+const MODEL = "gemma2-9b-it";
 const ERROR_MESSAGE = "잠시 문제가 생겼어요. 다시 말씀해 주세요.";
 
 export async function chat(session: Session): Promise<string> {
