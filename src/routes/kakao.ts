@@ -62,6 +62,9 @@ router.post("/webhook", async (req: Request, res: Response) => {
     return;
   }
 
+  console.log("웹훅 요청:", userId, utterance);
+
+  try {
   const session = getSession(userId);
 
   // REVIEWING 상태 처리
@@ -143,6 +146,10 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
   const result = await withTimeout(task, TIMEOUT_MS, TIMEOUT_MESSAGE);
   res.json(makeKakaoResponse(result));
+  } catch (error) {
+    console.error("카카오 웹훅 오류:", error);
+    res.json(makeKakaoResponse("잠시 문제가 생겼어요. 다시 말씀해 주세요."));
+  }
 });
 
 export default router;
