@@ -5,8 +5,7 @@ import { chat, generateDiary } from "../services/claudeService";
 
 const router = Router();
 
-const TIMEOUT_MS = 4500;
-const TIMEOUT_MESSAGE = "잠시 서버가 바빠요. 다시 말씀해 주세요 🙏";
+const TIMEOUT_MS = 4000;
 
 const EMOTION_WORDS = [
   "좋았", "힘들", "피곤", "행복", "슬펐", "화났", "설렜", "뿌듯",
@@ -25,11 +24,11 @@ function makeKakaoResponse(text: string): KakaoResponse {
   };
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   const timeout = new Promise<T>((_, reject) =>
     setTimeout(() => reject(new Error("timeout")), ms)
   );
-  return Promise.race([promise, timeout]).catch(() => fallback);
+  return Promise.race([promise, timeout]);
 }
 
 function hasEmotionWord(text: string): boolean {
@@ -75,7 +74,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
       return;
     }
     if (utterance === "다시 써줘" || utterance === "수정") {
-      const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS, TIMEOUT_MESSAGE);
+      const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
       res.json(makeKakaoResponse(result));
       return;
     }
@@ -84,7 +83,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
   // 사용자가 직접 "일기 써줘" 명령 (diaryOffered 상관없이)
   if (utterance === "일기 써줘") {
     addMessage(userId, "user", utterance);
-    const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS, TIMEOUT_MESSAGE);
+    const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
     res.json(makeKakaoResponse(result));
     return;
   }
@@ -93,7 +92,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
   if (session.diaryOffered) {
     if (DIARY_YES.some((w) => utterance === w || utterance.includes(w))) {
       addMessage(userId, "user", utterance);
-      const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS, TIMEOUT_MESSAGE);
+      const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
       res.json(makeKakaoResponse(result));
       return;
     }
@@ -106,7 +105,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
         updateSession(userId, { state: "CHATTING", questionCount: updated.questionCount + 1 });
         return reply;
       });
-      const result = await withTimeout(task, TIMEOUT_MS, TIMEOUT_MESSAGE);
+      const result = await withTimeout(task, TIMEOUT_MS);
       res.json(makeKakaoResponse(result));
       return;
     }
@@ -144,11 +143,16 @@ router.post("/webhook", async (req: Request, res: Response) => {
     return reply;
   })();
 
-  const result = await withTimeout(task, TIMEOUT_MS, TIMEOUT_MESSAGE);
+  const result = await withTimeout(task, TIMEOUT_MS);
   res.json(makeKakaoResponse(result));
   } catch (error) {
-    console.error("카카오 웹훅 오류:", error);
-    res.json(makeKakaoResponse("잠시 문제가 생겼어요. 다시 말씀해 주세요."));
+    if (error instanceof Error && error.message === "timeout") {
+      console.error("카카오 웹훅 타임아웃:", userId);
+      res.json(makeKakaoResponse("잠시만요... 🤔 다시 한번 말씀해 주세요."));
+    } else {
+      console.error("카카오 웹훅 오류:", error);
+      res.json(makeKakaoResponse("오류가 발생했어요. 다시 말씀해 주세요."));
+    }
   }
 });
 
