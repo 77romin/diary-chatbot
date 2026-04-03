@@ -12,6 +12,11 @@ function stripThinkTags(text: string): string {
   return text.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
 }
 
+function stripLeadingDate(text: string): string {
+  // AI가 쓴 날짜 패턴 제거 (예: **2023. 11. 7**, 2023년 11월 7일 등)
+  return text.replace(/^[\*\s]*\d{4}[년.\s]+\d{1,2}[월.\s]+\d{1,2}[일.]?[\*\s]*\n*/i, "").trim();
+}
+
 export async function chat(session: Session): Promise<string> {
   try {
     const response = await groq.chat.completions.create({
@@ -40,7 +45,8 @@ export async function generateDiary(session: Session, date: string): Promise<str
     });
 
     const content = response.choices[0].message.content ?? ERROR_MESSAGE;
-    return `${date}\n\n${stripThinkTags(content)}`;
+    const cleaned = stripLeadingDate(stripThinkTags(content));
+    return `${date}\n\n${cleaned}`;
   } catch (e) {
     console.error("[generateDiary error]", e);
     return ERROR_MESSAGE;

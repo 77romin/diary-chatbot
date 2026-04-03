@@ -24,6 +24,18 @@ function makeKakaoResponse(text: string): KakaoResponse {
   };
 }
 
+function makeDiaryResponse(diary: string): KakaoResponse {
+  return {
+    version: "2.0",
+    template: {
+      outputs: [
+        { simpleText: { text: diary } },
+        { simpleText: { text: "이 일기를 읽고 지금 어떤 마음이 들어?" } },
+      ],
+    },
+  };
+}
+
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   const timeout = new Promise<T>((_, reject) =>
     setTimeout(() => reject(new Error("timeout")), ms)
@@ -48,7 +60,7 @@ async function runGenerateDiary(userId: string): Promise<string> {
   const diary = await generateDiary(session, getToday());
   addMessage(userId, "assistant", diary);
   updateSession(userId, { state: "REFLECTING", diaryOffered: false });
-  return diary + "\n\n이 일기를 읽고 지금 어떤 마음이 들어?";
+  return diary;
 }
 
 router.post("/webhook", async (req: Request, res: Response) => {
@@ -83,7 +95,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
     }
     if (utterance === "다시 써줘" || utterance === "수정") {
       const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
-      res.json(makeKakaoResponse(result));
+      res.json(makeDiaryResponse(result));
       return;
     }
   }
@@ -92,7 +104,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
   if (utterance === "일기 써줘") {
     addMessage(userId, "user", utterance);
     const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
-    res.json(makeKakaoResponse(result));
+    res.json(makeDiaryResponse(result));
     return;
   }
 
@@ -101,7 +113,7 @@ router.post("/webhook", async (req: Request, res: Response) => {
     if (DIARY_YES.some((w) => utterance === w || utterance.includes(w))) {
       addMessage(userId, "user", utterance);
       const result = await withTimeout(runGenerateDiary(userId), TIMEOUT_MS);
-      res.json(makeKakaoResponse(result));
+      res.json(makeDiaryResponse(result));
       return;
     }
     if (DIARY_NO.some((w) => utterance.includes(w))) {
