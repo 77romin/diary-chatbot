@@ -47,8 +47,8 @@ async function runGenerateDiary(userId: string): Promise<string> {
   const session = getSession(userId);
   const diary = await generateDiary(session, getToday());
   addMessage(userId, "assistant", diary);
-  updateSession(userId, { state: "REVIEWING", diaryOffered: false });
-  return diary;
+  updateSession(userId, { state: "REFLECTING", diaryOffered: false });
+  return diary + "\n\n이 일기를 읽고 지금 어떤 마음이 들어?";
 }
 
 router.post("/webhook", async (req: Request, res: Response) => {
@@ -65,6 +65,14 @@ router.post("/webhook", async (req: Request, res: Response) => {
 
   try {
   const session = getSession(userId);
+
+  // REFLECTING 상태 처리
+  if (session.state === "REFLECTING") {
+    addMessage(userId, "user", utterance);
+    updateSession(userId, { state: "REVIEWING" });
+    res.json(makeKakaoResponse("그 감정에 잠시만 집중해볼 수 있을까?"));
+    return;
+  }
 
   // REVIEWING 상태 처리
   if (session.state === "REVIEWING") {

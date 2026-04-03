@@ -40,7 +40,7 @@ export async function generateDiary(session: Session, date: string): Promise<str
     });
 
     const content = response.choices[0].message.content ?? ERROR_MESSAGE;
-    return stripThinkTags(content);
+    return `${date}\n\n${stripThinkTags(content)}`;
   } catch (e) {
     console.error("[generateDiary error]", e);
     return ERROR_MESSAGE;

@@ -27,7 +27,7 @@ export interface Message {
   content: string;
 }
 
-export type SessionState = "IDLE" | "CHATTING" | "WRITING" | "REVIEWING";
+export type SessionState = "IDLE" | "CHATTING" | "WRITING" | "REFLECTING" | "REVIEWING";
 
 export interface Session {
   userId: string;
